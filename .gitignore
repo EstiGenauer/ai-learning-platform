@@ -1,0 +1,11 @@
+# הגדרות של .NET
+[Bb]in/
+[Oo]bj/
+*.user
+*.userosscache
+*.sln.docstates
+
+# הגדרות רגישות שאנחנו לא רוצים בגיט
+appsettings.json
+.vscode/
+.idea/

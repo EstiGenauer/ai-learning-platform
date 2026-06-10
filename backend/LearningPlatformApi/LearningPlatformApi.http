@@ -1,0 +1,6 @@
+@LearningPlatformApi_HostAddress = http://localhost:5055
+
+GET {{LearningPlatformApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
