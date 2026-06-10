@@ -1,11 +1,28 @@
-# הגדרות של .NET
+# --- .NET Build & Cache ---
 [Bb]in/
 [Oo]bj/
 *.user
 *.userosscache
 *.sln.docstates
+.DS_Store
 
-# הגדרות רגישות שאנחנו לא רוצים בגיט
-appsettings.json
+# --- .NET Local Settings (IMPORTANT!) ---
+# appsettings.json נשאר בגיט רק אם הוא כללי. 
+# אם יש בו מפתחות סודיים, עדיף להשתמש ב-appsettings.Development.json
+# הנה קובץ שמגן על סודות מקומיים של .NET:
+appsettings.Development.json
+appsettings.Local.json
+
+# --- Environment Secrets (קריטי!) ---
+.env
+
+# --- Docker & Development Folders ---
 .vscode/
 .idea/
+.docker/
+
+# --- Temporary/Database Data ---
+*.log
+*.tmp
+*.bak
+pgdata/
