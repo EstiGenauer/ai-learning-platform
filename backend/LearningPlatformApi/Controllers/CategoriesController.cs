@@ -16,11 +16,13 @@ namespace LearningPlatformApi.Controllers
             _context = context;
         }
 
-        // GET: api/categories
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Category>>> GetCategories()
         {
-            return await _context.Categories.Include(c => c.SubCategories).ToListAsync();
+            return await _context.Categories
+                .Include(c => c.SubCategories)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
         }
     }
 }

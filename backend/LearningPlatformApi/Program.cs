@@ -7,13 +7,13 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. הגדרות בסיס נתונים ---
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        npgsql => npgsql.CommandTimeout(30)));
 
-// --- 2. הגדרות JWT ---
 var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]);
+var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ?? "SuperSecretKey1234567890123456");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -28,17 +28,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddScoped<PasswordService>();
 
-// --- 3. הגדרת שירות ה-AI ---
 var apiKey = builder.Configuration["OpenAi:ApiKey"];
-if (string.IsNullOrWhiteSpace(apiKey))
+builder.Services.AddSingleton(new AiService(apiKey ?? "dummy-key"));
+
+builder.Services.AddCors(options =>
 {
-    Console.WriteLine("⚠️ אזהרה: לא נמצא API Key ב-Configuration. שירות ה-AI לא יעבוד.");
-}
-else
-{
-    builder.Services.AddSingleton(new AiService(apiKey));
-}
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:3000",
+                "http://localhost:3001",
+                "http://127.0.0.1:3000",
+                "http://localhost:8080")
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -46,33 +53,57 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// --- 4. הגדרות Middleware ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
-// חשוב: Authentication חייב להגיע לפני Authorization!
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllers();
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
-// --- 5. בדיקת חיבור ל-DB ---
 app.MapGet("/test-db", async (AppDbContext db) =>
 {
-    try 
+    try
     {
-        var tableCount = await db.PromptHistories.CountAsync();
-        return Results.Ok($"Connected successfully! Found {tableCount} items in the history.");
+        var canConnect = await db.Database.CanConnectAsync();
+        return canConnect ? Results.Ok("Connected successfully!") : Results.Problem("Cannot connect to DB.");
     }
     catch (Exception ex)
     {
-        return Results.Problem($"Database connection failed: {ex.Message}");
+        return Results.Problem($"Database error: {ex.Message}");
     }
 });
 
+app.MapControllers();
+
+await InitializeDatabaseAsync(app.Services);
+
 app.Run();
+
+static async Task InitializeDatabaseAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var passwordService = scope.ServiceProvider.GetRequiredService<PasswordService>();
+
+    for (var attempt = 1; attempt <= 15; attempt++)
+    {
+        try
+        {
+            await dbContext.Database.MigrateAsync();
+            await DbSeeder.SeedAsync(dbContext, passwordService);
+            Console.WriteLine("Database migrated and seeded successfully.");
+            return;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Database init attempt {attempt}/15 failed: {ex.Message}");
+            if (attempt == 15) throw;
+            await Task.Delay(TimeSpan.FromSeconds(2));
+        }
+    }
+}

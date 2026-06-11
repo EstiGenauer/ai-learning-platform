@@ -10,7 +10,8 @@ namespace LearningPlatformApi.Models
         public string Response { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // ניווט לטבלאות קשורות (יעזור ל-EF ליצור קשרים נכונים)
         public User? User { get; set; }
+        public Category? Category { get; set; }
+        public SubCategory? SubCategory { get; set; }
     }
 }

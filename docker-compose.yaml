@@ -1,5 +1,4 @@
 services:
-  # שירות בסיס הנתונים הקיים שלך
   db:
     image: postgres:15
     container_name: learning_platform_db
@@ -12,23 +11,50 @@ services:
       - "5434:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d learning_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
-  # שירות ה-Backend החדש
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: learning_platform_api
     ports:
-      - "5055:8080" # מפה את פורט 5055 של המחשב ל-8080 של הקונטיינר
+      - "5055:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      # מחרוזת החיבור ל-DB בתוך הדוקר (השם של השירות 'db' משמש כאן ככתובת)
-      - ConnectionStrings__DefaultConnection=Host=db;Database=learning_platform;Username=admin;Password=password
-      - OpenAi__ApiKey=${OPENAI_API_KEY}
-
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=learning_platform;Username=admin;Password=password;Timeout=5;Command Timeout=30
+      - OpenAi__ApiKey=${OPENAI_API_KEY:-}
+      - Jwt__Key=${JWT_SECRET:-MySuperSecretKeyForLearningPlatform123!}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_API_URL: http://localhost:5055/api
+    container_name: learning_platform_web
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   pgdata:

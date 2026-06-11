@@ -1,6 +1,4 @@
-using OpenAI;
 using OpenAI.Chat;
-using System.ClientModel;
 
 namespace LearningPlatformApi.Services
 {
@@ -10,13 +8,20 @@ namespace LearningPlatformApi.Services
 
         public AiService(string apiKey)
         {
-            // כאן נגדיר את החיבור ל-OpenAI
-            _client = new ChatClient("gpt-4o", apiKey);
+            _client = new ChatClient("gpt-4o-mini", apiKey);
         }
 
-        public async Task<string> GetAiResponse(string userPrompt)
+        public async Task<string> GenerateLesson(string category, string subCategory, string userPrompt)
         {
-            ChatCompletion completion = await _client.CompleteChatAsync(userPrompt);
+            var prompt =
+                "You are an expert learning coach. Create clear, structured, beginner-friendly lessons " +
+                "with headings, bullet points, and a short summary.\n\n" +
+                $"Topic category: {category}\n" +
+                $"Sub-topic: {subCategory}\n" +
+                $"Student request: {userPrompt}\n\n" +
+                "Generate a concise but high-quality learning lesson.";
+
+            ChatCompletion completion = await _client.CompleteChatAsync(prompt);
             return completion.Content[0].Text;
         }
     }
