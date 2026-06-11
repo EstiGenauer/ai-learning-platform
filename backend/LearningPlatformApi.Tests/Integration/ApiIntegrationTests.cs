@@ -105,7 +105,10 @@ namespace LearningPlatformApi.Tests
                 Email = "admin@admin.com",
                 Password = "Admin123!"
             });
+            Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
             var auth = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
+            Assert.False(string.IsNullOrWhiteSpace(auth!.Token));
             client.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", auth!.Token);
 

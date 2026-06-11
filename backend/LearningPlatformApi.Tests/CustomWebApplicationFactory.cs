@@ -11,9 +11,12 @@ namespace LearningPlatformApi.Tests
 {
     public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
+        private readonly string _databaseName = $"LearningPlatformTests_{Guid.NewGuid():N}";
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Testing");
+            builder.UseSetting("Testing:DatabaseName", _databaseName);
 
             builder.ConfigureServices(services =>
             {

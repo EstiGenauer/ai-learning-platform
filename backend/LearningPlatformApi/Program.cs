@@ -10,7 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     if (builder.Environment.IsEnvironment("Testing"))
-        options.UseInMemoryDatabase("LearningPlatformTests");
+    {
+        var testDbName = builder.Configuration["Testing:DatabaseName"] ?? "LearningPlatformTests";
+        options.UseInMemoryDatabase(testDbName);
+    }
     else
         options.UseNpgsql(
             builder.Configuration.GetConnectionString("DefaultConnection"),
