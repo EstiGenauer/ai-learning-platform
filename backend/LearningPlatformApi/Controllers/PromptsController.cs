@@ -14,11 +14,11 @@ namespace LearningPlatformApi.Controllers
     [Authorize]
     public class PromptsController : ControllerBase
     {
-        private readonly AiService _aiService;
+        private readonly IAiService _aiService;
         private readonly ILogger<PromptsController> _logger;
         private readonly AppDbContext _context;
 
-        public PromptsController(AiService aiService, ILogger<PromptsController> logger, AppDbContext context)
+        public PromptsController(IAiService aiService, ILogger<PromptsController> logger, AppDbContext context)
         {
             _aiService = aiService;
             _logger = logger;
@@ -66,7 +66,8 @@ namespace LearningPlatformApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to generate AI lesson");
-                return StatusCode(500, new { message = "AI service error. Please try again later." });
+                var message = GetAiErrorMessage(ex);
+                return StatusCode(500, new { message });
             }
         }
 
@@ -91,6 +92,28 @@ namespace LearningPlatformApi.Controllers
 
         private int GetUserId() =>
             int.Parse(User.FindFirst("id")?.Value ?? throw new UnauthorizedAccessException());
+
+        private static string GetAiErrorMessage(Exception ex)
+        {
+            var detail = ex.ToString();
+
+            if (detail.Contains("API key is not configured", StringComparison.OrdinalIgnoreCase))
+                return "OpenAI API key is missing. Add OPENAI_API_KEY to .env and restart the backend.";
+
+            if (detail.Contains("model_not_found", StringComparison.OrdinalIgnoreCase)
+                || detail.Contains("does not have access to model", StringComparison.OrdinalIgnoreCase))
+                return "Your OpenAI project does not have access to the configured model. Add OPENAI_MODEL=gpt-4o to .env and run: docker compose up -d --build backend";
+
+            if (detail.Contains("401", StringComparison.OrdinalIgnoreCase)
+                || detail.Contains("invalid_api_key", StringComparison.OrdinalIgnoreCase))
+                return "Invalid OpenAI API key. Check OPENAI_API_KEY in .env.";
+
+            if (detail.Contains("429", StringComparison.OrdinalIgnoreCase)
+                || detail.Contains("insufficient_quota", StringComparison.OrdinalIgnoreCase))
+                return "OpenAI quota exceeded. Check billing on platform.openai.com.";
+
+            return "AI service error. Please try again later.";
+        }
 
         private static PromptDto MapToDto(Prompt prompt, string categoryName, string subCategoryName, string? userName = null) =>
             new()

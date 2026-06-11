@@ -83,11 +83,23 @@ const Dashboard = () => {
               disabled={!categoryId}
               className="w-full p-4 rounded-2xl bg-[#151926] border border-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
             >
-              <option value="">Select sub-topic</option>
+              <option value="">
+                {!categoryId
+                  ? 'Select a category first'
+                  : subCategories.length === 0
+                    ? 'No sub-topics for this category'
+                    : 'Select sub-topic'}
+              </option>
               {subCategories.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
+            {categoryId && subCategories.length > 0 && (
+              <p className="text-xs text-white/30 mt-2">
+                Showing {subCategories.length} sub-topics for{' '}
+                {categories.find((c) => c.id === categoryId)?.name}
+              </p>
+            )}
           </div>
         </div>
 

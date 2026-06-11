@@ -8,9 +8,14 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        npgsql => npgsql.CommandTimeout(30)));
+{
+    if (builder.Environment.IsEnvironment("Testing"))
+        options.UseInMemoryDatabase("LearningPlatformTests");
+    else
+        options.UseNpgsql(
+            builder.Configuration.GetConnectionString("DefaultConnection"),
+            npgsql => npgsql.CommandTimeout(30));
+});
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ?? "SuperSecretKey1234567890123456");
@@ -31,7 +36,8 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<PasswordService>();
 
 var apiKey = builder.Configuration["OpenAi:ApiKey"];
-builder.Services.AddSingleton(new AiService(apiKey ?? "dummy-key"));
+var openAiModel = builder.Configuration["OpenAi:Model"] ?? "gpt-4o-mini";
+builder.Services.AddSingleton<IAiService>(new AiService(apiKey ?? "dummy-key", openAiModel));
 
 builder.Services.AddCors(options =>
 {
@@ -80,7 +86,21 @@ app.MapGet("/test-db", async (AppDbContext db) =>
 
 app.MapControllers();
 
-await InitializeDatabaseAsync(app.Services);
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    // Start API immediately; migrate DB in background (avoids healthcheck/startup deadlock)
+    _ = Task.Run(async () =>
+    {
+        try
+        {
+            await InitializeDatabaseAsync(app.Services);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"CRITICAL: Database initialization failed: {ex.Message}");
+        }
+    });
+}
 
 app.Run();
 
@@ -107,3 +127,5 @@ static async Task InitializeDatabaseAsync(IServiceProvider services)
         }
     }
 }
+
+public partial class Program { }

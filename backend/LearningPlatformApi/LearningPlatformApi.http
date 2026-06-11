@@ -1,6 +1,62 @@
 @LearningPlatformApi_HostAddress = http://localhost:5055
 
-GET {{LearningPlatformApi_HostAddress}}/weatherforecast/
-Accept: application/json
+### Health
+GET {{LearningPlatformApi_HostAddress}}/health
+
+### Auth
+POST {{LearningPlatformApi_HostAddress}}/api/Auth/register
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "email": "test@example.com",
+  "password": "Password123!",
+  "phone": "0501234567"
+}
 
 ###
+POST {{LearningPlatformApi_HostAddress}}/api/Auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@admin.com",
+  "password": "Admin123!"
+}
+
+### Categories (public)
+GET {{LearningPlatformApi_HostAddress}}/api/Categories
+
+### Prompts (requires JWT — paste token from login)
+# @name login
+POST {{LearningPlatformApi_HostAddress}}/api/Auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@admin.com",
+  "password": "Admin123!"
+}
+
+###
+@token = {{login.response.body.token}}
+
+POST {{LearningPlatformApi_HostAddress}}/api/Prompts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "categoryId": 1,
+  "subCategoryId": 1,
+  "promptText": "Explain variables in simple terms"
+}
+
+###
+GET {{LearningPlatformApi_HostAddress}}/api/Prompts/history
+Authorization: Bearer {{token}}
+
+### Admin
+GET {{LearningPlatformApi_HostAddress}}/api/Admin/users
+Authorization: Bearer {{token}}
+
+###
+GET {{LearningPlatformApi_HostAddress}}/api/Admin/prompts
+Authorization: Bearer {{token}}

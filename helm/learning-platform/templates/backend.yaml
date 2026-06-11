@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "learning-platform.fullname" . }}-backend
+  labels:
+    {{- include "learning-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "learning-platform.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        {{- include "learning-platform.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: {{ include "learning-platform.fullname" . }}-config
+          env:
+            - name: ASPNETCORE_URLS
+              value: "http://+:8080"
+            - name: OpenAi__ApiKey
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "learning-platform.fullname" . }}-secrets
+                  key: OPENAI_API_KEY
+            - name: OpenAi__Model
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "learning-platform.fullname" . }}-config
+                  key: OPENAI_MODEL
+            - name: Jwt__Key
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "learning-platform.fullname" . }}-secrets
+                  key: JWT_SECRET
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "learning-platform.fullname" . }}-backend
+  labels:
+    {{- include "learning-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  type: {{ .Values.backend.service.type }}
+  selector:
+    {{- include "learning-platform.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+  ports:
+    - port: {{ .Values.backend.service.port }}
+      targetPort: 8080
+      name: http

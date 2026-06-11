@@ -1,0 +1,74 @@
+# Default values for learning-platform Helm chart
+
+nameOverride: ""
+fullnameOverride: ""
+
+# --- Bitnami PostgreSQL subchart ---
+postgresql:
+  enabled: true
+  auth:
+    username: admin
+    password: password
+    database: learning_platform
+  primary:
+    persistence:
+      enabled: true
+      size: 8Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# --- Application secrets (override in production) ---
+secrets:
+  openaiApiKey: "sk-your-openai-api-key"
+  jwtSecret: "MySuperSecretKeyForLearningPlatform123!"
+
+# --- Backend (.NET API) ---
+backend:
+  replicaCount: 2
+  image:
+    repository: learning-platform-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  openaiModel: gpt-4o
+  service:
+    type: ClusterIP
+    port: 8080
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# --- Frontend (React + Nginx) ---
+frontend:
+  replicaCount: 2
+  image:
+    repository: learning-platform-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  apiUrl: "/api"
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# --- Ingress ---
+ingress:
+  enabled: true
+  className: nginx
+  host: learning-platform.local
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"

@@ -1,0 +1,19 @@
+apiVersion: v2
+name: learning-platform
+description: AI Learning Platform — .NET API, React frontend, PostgreSQL (Bitnami)
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - learning
+  - ai
+  - dotnet
+  - react
+  - postgresql
+maintainers:
+  - name: AI Learning Platform Team
+dependencies:
+  - name: postgresql
+    version: "16.2.1"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled

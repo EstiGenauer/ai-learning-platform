@@ -1,0 +1,28 @@
+AI Learning Platform deployed successfully!
+
+Release: {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+
+{{- if .Values.postgresql.enabled }}
+
+PostgreSQL (Bitnami subchart):
+  Host: {{ include "learning-platform.postgresql.host" . }}
+  Port: 5432
+  Database: {{ .Values.postgresql.auth.database }}
+  Username: {{ .Values.postgresql.auth.username }}
+{{- end }}
+
+Application URL:
+  http://{{ .Values.ingress.host }}
+
+Add to your hosts file:
+  127.0.0.1 {{ .Values.ingress.host }}
+
+Useful commands:
+  kubectl get pods -n {{ .Release.Namespace }}
+  kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=backend
+  helm upgrade {{ .Release.Name }} ./helm/learning-platform -f my-values.yaml
+
+Remember to set a real OpenAI API key:
+  helm upgrade {{ .Release.Name }} ./helm/learning-platform \
+    --set secrets.openaiApiKey=sk-your-key-here

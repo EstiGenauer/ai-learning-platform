@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LearningPlatformApi.Data;
-using LearningPlatformApi.Models;
+using LearningPlatformApi.DTOs;
 
 namespace LearningPlatformApi.Controllers
 {
@@ -17,12 +17,28 @@ namespace LearningPlatformApi.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Category>>> GetCategories()
+        public async Task<ActionResult<IEnumerable<CategoryDto>>> GetCategories()
         {
-            return await _context.Categories
+            var categories = await _context.Categories
                 .Include(c => c.SubCategories)
                 .OrderBy(c => c.Name)
+                .Select(c => new CategoryDto
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    SubCategories = c.SubCategories
+                        .OrderBy(s => s.Name)
+                        .Select(s => new SubCategoryDto
+                        {
+                            Id = s.Id,
+                            Name = s.Name,
+                            CategoryId = s.CategoryId
+                        })
+                        .ToList()
+                })
                 .ToListAsync();
+
+            return Ok(categories);
         }
     }
 }

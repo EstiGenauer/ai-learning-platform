@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "learning-platform.fullname" . }}-config
+  labels:
+    {{- include "learning-platform.labels" . | nindent 4 }}
+data:
+  OPENAI_MODEL: {{ .Values.backend.openaiModel | quote }}
+  REACT_APP_API_URL: {{ .Values.frontend.apiUrl | quote }}
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ConnectionStrings__DefaultConnection: {{ include "learning-platform.connectionString" . | quote }}

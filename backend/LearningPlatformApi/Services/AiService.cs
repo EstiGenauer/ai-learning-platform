@@ -2,17 +2,24 @@ using OpenAI.Chat;
 
 namespace LearningPlatformApi.Services
 {
-    public class AiService
+    public class AiService : IAiService
     {
-        private readonly ChatClient _client;
+        private readonly string _apiKey;
+        private readonly string _model;
+        private ChatClient? _client;
 
-        public AiService(string apiKey)
+        public AiService(string apiKey, string model)
         {
-            _client = new ChatClient("gpt-4o-mini", apiKey);
+            _apiKey = apiKey ?? string.Empty;
+            _model = string.IsNullOrWhiteSpace(model) ? "gpt-4o-mini" : model;
         }
 
         public async Task<string> GenerateLesson(string category, string subCategory, string userPrompt)
         {
+            if (string.IsNullOrWhiteSpace(_apiKey) || _apiKey == "dummy-key")
+                throw new InvalidOperationException("OpenAI API key is not configured. Set OPENAI_API_KEY in .env and restart.");
+
+            _client ??= new ChatClient(_model, _apiKey);
             var prompt =
                 "You are an expert learning coach. Create clear, structured, beginner-friendly lessons " +
                 "with headings, bullet points, and a short summary.\n\n" +
