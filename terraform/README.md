@@ -69,9 +69,11 @@ Add to your hosts file:
 
 ```
 127.0.0.1 learning-platform.local
+127.0.0.1 grafana.learning-platform.local
 ```
 
-Open: http://learning-platform.local
+Open: http://learning-platform.local  
+Grafana: http://grafana.learning-platform.local
 
 ```bash
 kubectl get pods -n learning-platform
@@ -136,6 +138,7 @@ terraform destroy
 | NGINX Ingress Controller (Helm) | ✓ | ✓ |
 | learning-platform Helm release | ✓ | ✓ |
 | Bitnami PostgreSQL (subchart) | ✓ | ✓ |
+| Prometheus + Grafana (Helm) | ✓ optional | ✓ optional |
 | VPC | — | ✓ |
 | EKS cluster + nodes | — | ✓ |
 

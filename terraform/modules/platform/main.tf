@@ -107,4 +107,14 @@ resource "helm_release" "learning_platform" {
     name  = "frontend.apiUrl"
     value = var.frontend_api_url
   }
+
+  set {
+    name  = "monitoring.serviceMonitor.enabled"
+    value = tostring(var.enable_service_monitor)
+  }
+
+  set {
+    name  = "monitoring.prometheusReleaseName"
+    value = var.prometheus_release_name
+  }
 }

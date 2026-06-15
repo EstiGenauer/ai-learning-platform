@@ -72,3 +72,11 @@ ingress:
   host: learning-platform.local
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+
+# --- Prometheus monitoring (requires kube-prometheus-stack / monitoring Helm chart) ---
+monitoring:
+  prometheusReleaseName: monitoring
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s

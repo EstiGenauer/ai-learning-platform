@@ -99,3 +99,35 @@ variable "postgresql_password" {
   sensitive = true
   default   = "password"
 }
+
+variable "install_monitoring" {
+  description = "Install Prometheus + Grafana (kube-prometheus-stack)"
+  type        = bool
+  default     = true
+}
+
+variable "monitoring_namespace" {
+  type    = string
+  default = "monitoring"
+}
+
+variable "monitoring_release_name" {
+  type    = string
+  default = "monitoring"
+}
+
+variable "grafana_host" {
+  type    = string
+  default = "grafana.learning-platform.local"
+}
+
+variable "grafana_admin_password" {
+  type      = string
+  sensitive = true
+  default   = "admin"
+}
+
+variable "prometheus_retention" {
+  type    = string
+  default = "7d"
+}

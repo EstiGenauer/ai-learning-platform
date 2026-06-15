@@ -3,9 +3,17 @@ using LearningPlatformApi.Data;
 using LearningPlatformApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Prometheus;
+using Serilog;
 using System.Text;
 
+Log.Logger = new LoggerConfiguration()
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .CreateLogger();
+
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -77,6 +85,11 @@ app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.UseHttpMetrics();
+}
+
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 app.MapGet("/test-db", async (AppDbContext db) =>
@@ -91,6 +104,9 @@ app.MapGet("/test-db", async (AppDbContext db) =>
         return Results.Problem($"Database error: {ex.Message}");
     }
 });
+
+if (!app.Environment.IsEnvironment("Testing"))
+    app.MapMetrics();
 
 app.MapControllers();
 

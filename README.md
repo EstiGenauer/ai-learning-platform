@@ -37,6 +37,7 @@ ai-learning-platform/
 ├── frontend/                         # React SPA
 ├── k8s/                              # Plain Kubernetes manifests
 ├── helm/learning-platform/           # Helm chart + PostgreSQL dependency
+├── helm/monitoring/                  # Prometheus + Grafana (kube-prometheus-stack)
 ├── terraform/                        # Terraform (local K8s + AWS EKS)
 │   ├── modules/platform/
 │   └── environments/local|aws/
@@ -45,6 +46,7 @@ ai-learning-platform/
 ├── .github/workflows/ci-backend.yaml
 ├── .github/workflows/ci-frontend.yaml
 ├── docker-compose.yaml
+├── monitoring/                       # Prometheus/Grafana/Loki for Compose
 ├── docker-compose.test.yml           # Integration tests in Docker
 ├── tests/compose/run-tests.sh
 ├── scripts/run-all-tests.ps1
@@ -227,6 +229,44 @@ helm install learning-platform . \
 ```
 
 See `helm/learning-platform/README.md` for values and upgrades.
+
+## Monitoring (Prometheus + Grafana + Loki)
+
+### Docker Compose (local — recommended)
+
+```bash
+docker compose --profile monitoring up -d --build
+```
+
+| URL | Service |
+|-----|---------|
+| http://localhost:3000 | App frontend |
+| http://localhost:3001 | Grafana (`admin` / `admin`) |
+| http://localhost:9090 | Prometheus |
+| http://localhost:5055/metrics | Backend metrics |
+
+Config files: [`monitoring/`](monitoring/)
+
+### Kubernetes (Helm)
+
+```bash
+cd helm/monitoring
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add grafana https://grafana.github.io/helm-charts
+helm dependency update
+helm install monitoring . -n monitoring --create-namespace
+
+helm install learning-platform ../learning-platform \
+  -n learning-platform --create-namespace \
+  --set monitoring.serviceMonitor.enabled=true \
+  --set secrets.openaiApiKey=sk-your-key
+```
+
+- Grafana: http://grafana.learning-platform.local
+- Backend metrics: `GET /metrics`
+- Logs: Loki + Promtail → view in Grafana Explore
+
+Docs: [`docs/architecture/07-monitoring.md`](docs/architecture/07-monitoring.md) · [`docs/architecture/08-logging.md`](docs/architecture/08-logging.md)
 
 ## Terraform Deployment (IaC)
 

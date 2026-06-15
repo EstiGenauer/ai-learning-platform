@@ -93,3 +93,15 @@ variable "postgresql_password" {
   sensitive   = true
   default     = "password"
 }
+
+variable "enable_service_monitor" {
+  description = "Create Prometheus ServiceMonitor for backend /metrics"
+  type        = bool
+  default     = false
+}
+
+variable "prometheus_release_name" {
+  description = "Prometheus Helm release name (ServiceMonitor label)"
+  type        = string
+  default     = "monitoring"
+}

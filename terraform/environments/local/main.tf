@@ -44,6 +44,18 @@ resource "kind_cluster" "this" {
   name  = var.kind_cluster_name
 }
 
+module "monitoring" {
+  count  = var.install_monitoring ? 1 : 0
+  source = "../../modules/monitoring"
+
+  helm_chart_path        = "${path.module}/../../../helm/monitoring"
+  namespace              = var.monitoring_namespace
+  release_name           = var.monitoring_release_name
+  grafana_host           = var.grafana_host
+  grafana_admin_password = var.grafana_admin_password
+  prometheus_retention   = var.prometheus_retention
+}
+
 module "platform" {
   source = "../../modules/platform"
 
@@ -63,4 +75,8 @@ module "platform" {
   backend_replicas           = var.backend_replicas
   frontend_replicas          = var.frontend_replicas
   postgresql_password        = var.postgresql_password
+  enable_service_monitor     = var.install_monitoring
+  prometheus_release_name    = var.monitoring_release_name
+
+  depends_on = [module.monitoring]
 }

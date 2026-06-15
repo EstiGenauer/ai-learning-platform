@@ -22,6 +22,10 @@ output "ingress_host" {
   value = module.platform.ingress_host
 }
 
+output "grafana_url" {
+  value = var.install_monitoring ? module.monitoring[0].grafana_url : null
+}
+
 output "get_ingress_ip" {
   value = "kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'"
 }

@@ -12,12 +12,15 @@
 | [Kubernetes & Helm](architecture/04-kubernetes-helm.md) | Cluster deployment |
 | [Terraform](architecture/05-terraform.md) | Infrastructure as Code (local + AWS EKS) |
 | [CI/CD Pipelines](architecture/06-ci-cd-pipelines.md) | GitHub Actions workflows |
+| [Monitoring](architecture/07-monitoring.md) | Prometheus + Grafana (Helm) |
+| [Logging](architecture/08-logging.md) | Loki + Promtail (centralized logs) |
 
 ## Quick links
 
 - Main README: [../README.md](../README.md)
 - K8s manifests: [../k8s/README.md](../k8s/README.md)
 - Helm chart: [../helm/learning-platform/README.md](../helm/learning-platform/README.md)
+- Monitoring Helm: [../helm/monitoring/README.md](../helm/monitoring/README.md)
 - Terraform: [../terraform/README.md](../terraform/README.md)
 
 ## Viewing diagrams

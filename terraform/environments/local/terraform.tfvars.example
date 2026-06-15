@@ -17,6 +17,10 @@ frontend_image_tag        = "latest"
 backend_replicas  = 1
 frontend_replicas = 1
 
+install_monitoring       = true
+grafana_host             = "grafana.learning-platform.local"
+grafana_admin_password   = "admin"
+
 # Docker Hub example (after CI push):
 # backend_image_repository  = "your-dockerhub-user/learning-platform-backend"
 # frontend_image_repository = "your-dockerhub-user/learning-platform-frontend"

@@ -5,10 +5,12 @@ project_name = "learning-platform"
 
 # Public DNS name — create an A/CNAME record to the NGINX LoadBalancer after apply
 ingress_host = "learning.example.com"
+grafana_host = "grafana.example.com"
 
 openai_api_key      = "sk-your-openai-api-key"
 jwt_secret          = "change-me-to-a-long-random-secret"
 postgresql_password = "change-me-postgres-password"
+grafana_admin_password = "change-me-grafana-password"
 openai_model        = "gpt-4o"
 
 # Images must be in a registry EKS can pull from (Docker Hub / GHCR)
@@ -22,3 +24,6 @@ frontend_replicas = 2
 
 node_desired_size = 2
 single_nat_gateway = true
+
+install_monitoring = true
+prometheus_retention = "15d"

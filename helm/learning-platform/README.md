@@ -59,6 +59,10 @@ postgresql:
 
 ingress:
   host: learning.example.com
+
+monitoring:
+  serviceMonitor:
+    enabled: true
 ```
 
 ```bash
@@ -83,6 +87,7 @@ helm uninstall learning-platform -n learning-platform
 | `templates/ingress.yaml` | NGINX Ingress rules |
 | `templates/configmap.yaml` | App configuration |
 | `templates/secret.yaml` | OpenAI key + JWT secret |
+| `templates/servicemonitor.yaml` | Prometheus ServiceMonitor (optional) |
 | `charts/postgresql` | Bitnami PostgreSQL (dependency) |
 
 ## Values reference

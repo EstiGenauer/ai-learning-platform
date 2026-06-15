@@ -1,0 +1,20 @@
+Thank you for installing the monitoring stack!
+
+Prometheus + Grafana were deployed via kube-prometheus-stack.
+
+1. Add to your hosts file:
+   127.0.0.1 grafana.learning-platform.local
+
+2. Open Grafana:
+   http://grafana.learning-platform.local
+   User: admin
+   Password: (see values grafana.adminPassword)
+
+3. Default dashboards (Kubernetes, nodes, pods) are pre-loaded.
+   Custom dashboard: "Learning Platform Overview"
+
+4. Ensure the app Helm release has monitoring.serviceMonitor.enabled=true
+   so Prometheus scrapes backend /metrics.
+
+5. Port-forward alternatives:
+   kubectl port-forward -n {{ .Release.Namespace }} svc/{{ .Release.Name }}-grafana 3001:80
