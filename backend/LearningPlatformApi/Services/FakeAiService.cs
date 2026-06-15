@@ -1,7 +1,9 @@
-using LearningPlatformApi.Services;
-
-namespace LearningPlatformApi.Tests.Fakes
+namespace LearningPlatformApi.Services
 {
+    /// <summary>
+    /// Used for automated tests (xUnit + docker-compose.test) without calling OpenAI.
+    /// Enable with environment variable USE_FAKE_AI=true
+    /// </summary>
     public class FakeAiService : IAiService
     {
         public Task<string> GenerateLesson(string category, string subCategory, string userPrompt) =>

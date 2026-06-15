@@ -1,0 +1,47 @@
+# Docker Compose stack for integration tests (no OpenAI key required).
+# Usage: docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from tests
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: learning_platform
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d learning_platform"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      USE_FAKE_AI: "true"
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=learning_platform;Username=admin;Password=password;Timeout=5;Command Timeout=30
+      Jwt__Key: TestJwtSecretKeyForComposeIntegration123!
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  tests:
+    image: curlimages/curl:8.5.0
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      API_URL: http://backend:8080
+    volumes:
+      - ./tests/compose/run-tests.sh:/run-tests.sh:ro
+    entrypoint: ["/bin/sh", "/run-tests.sh"]

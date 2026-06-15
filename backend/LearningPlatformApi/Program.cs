@@ -40,7 +40,12 @@ builder.Services.AddScoped<PasswordService>();
 
 var apiKey = builder.Configuration["OpenAi:ApiKey"];
 var openAiModel = builder.Configuration["OpenAi:Model"] ?? "gpt-4o-mini";
-builder.Services.AddSingleton<IAiService>(new AiService(apiKey ?? "dummy-key", openAiModel));
+var useFakeAi = string.Equals(Environment.GetEnvironmentVariable("USE_FAKE_AI"), "true", StringComparison.OrdinalIgnoreCase);
+
+if (useFakeAi)
+    builder.Services.AddSingleton<IAiService, FakeAiService>();
+else
+    builder.Services.AddSingleton<IAiService>(new AiService(apiKey ?? "dummy-key", openAiModel));
 
 builder.Services.AddCors(options =>
 {
