@@ -1,0 +1,24 @@
+# Copy to terraform.tfvars (gitignored). Requires AWS credentials configured.
+
+aws_region   = "eu-west-1"
+project_name = "learning-platform"
+
+# Public DNS name — create an A/CNAME record to the NGINX LoadBalancer after apply
+ingress_host = "learning.example.com"
+
+openai_api_key      = "sk-your-openai-api-key"
+jwt_secret          = "change-me-to-a-long-random-secret"
+postgresql_password = "change-me-postgres-password"
+openai_model        = "gpt-4o"
+
+# Images must be in a registry EKS can pull from (Docker Hub / GHCR)
+backend_image_repository  = "your-dockerhub-user/learning-platform-backend"
+backend_image_tag         = "latest"
+frontend_image_repository = "your-dockerhub-user/learning-platform-frontend"
+frontend_image_tag        = "latest"
+
+backend_replicas  = 2
+frontend_replicas = 2
+
+node_desired_size = 2
+single_nat_gateway = true

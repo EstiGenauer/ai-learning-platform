@@ -12,7 +12,7 @@ A full-stack learning platform that generates personalized AI lessons based on s
 | Frontend | React 19, TypeScript, Tailwind CSS, Framer Motion |
 | Database | PostgreSQL 15 |
 | AI | OpenAI GPT-4o / GPT-4o-mini |
-| DevOps | Docker Compose, Kubernetes, Helm, GitHub Actions CI |
+| DevOps | Docker Compose, Kubernetes, Helm, Terraform, GitHub Actions CI |
 
 ## Features
 
@@ -24,6 +24,7 @@ A full-stack learning platform that generates personalized AI lessons based on s
 - Containerized deployment with health checks
 - Unit & integration tests
 - Kubernetes manifests + Helm chart (Bitnami PostgreSQL)
+- Architecture docs with diagrams: [`docs/architecture/`](docs/architecture/)
 
 ## Project Structure
 
@@ -36,8 +37,13 @@ ai-learning-platform/
 ├── frontend/                         # React SPA
 ├── k8s/                              # Plain Kubernetes manifests
 ├── helm/learning-platform/           # Helm chart + PostgreSQL dependency
-├── .github/workflows/ci.yml          # CI pipeline
-├── .github/workflows/docker-publish.yml
+├── terraform/                        # Terraform (local K8s + AWS EKS)
+│   ├── modules/platform/
+│   └── environments/local|aws/
+├── docs/                             # Architecture diagrams & documentation
+│   └── architecture/
+├── .github/workflows/ci-backend.yaml
+├── .github/workflows/ci-frontend.yaml
 ├── docker-compose.yaml
 ├── docker-compose.test.yml           # Integration tests in Docker
 ├── tests/compose/run-tests.sh
@@ -116,35 +122,28 @@ Or run everything at once on Windows:
 .\scripts\run-all-tests.ps1
 ```
 
-### CI
+### CI pipelines
 
-GitHub Actions on push/PR to `main`:
-- Backend xUnit tests
-- Frontend tests
-- Docker Compose integration tests
-- Docker image build
+Two separate workflows (path-based triggers):
 
-## Docker Images (GitHub / Docker Hub)
+| Workflow | Triggers on | Stages |
+|----------|-------------|--------|
+| `ci-backend.yaml` | `backend/**`, `tests/**` | unit tests → build → compose integration → push → git tag |
+| `ci-frontend.yaml` | `frontend/**` | unit tests → build → push |
 
-Images are published automatically to **GitHub Container Registry** on every push to `main`:
+On push to `main`, backend images are tagged automatically:
 
-- `ghcr.io/EstiGenauer/ai-learning-platform/backend:latest`
-- `ghcr.io/EstiGenauer/ai-learning-platform/frontend:latest`
+- Docker Hub: `<username>/learning-platform-backend:latest`, `:sha`, `:v0.0.x`
+- GHCR: `ghcr.io/EstiGenauer/ai-learning-platform/backend:latest`
 
-**Do not share Docker Hub passwords in chat.** Add secrets in GitHub:
+**GitHub Secrets required:**
 
-1. Repo → **Settings** → **Secrets and variables** → **Actions**
-2. Add:
-   - `DOCKERHUB_USERNAME` — your Docker Hub username
-   - `DOCKERHUB_TOKEN` — access token from [hub.docker.com/settings/security](https://hub.docker.com/settings/security)
-
-Then run **Actions → Docker Publish → Run workflow** to push to Docker Hub manually.
-
-| Secret | Purpose |
-|--------|---------|
-| `GITHUB_TOKEN` | Built-in — pushes to GHCR automatically |
-| `DOCKERHUB_USERNAME` | Optional — Docker Hub username |
-| `DOCKERHUB_TOKEN` | Optional — Docker Hub access token |
+| Secret | Required for |
+|--------|----------------|
+| `DOCKERHUB_USERNAME` | Push to Docker Hub |
+| `DOCKERHUB_TOKEN` | Push to Docker Hub |
+| `EMAIL_USERNAME` | Optional — Gmail SMTP notifications |
+| `EMAIL_PASSWORD` | Optional — Gmail app password |
 
 ## Local Development (without Docker)
 
@@ -228,6 +227,32 @@ helm install learning-platform . \
 ```
 
 See `helm/learning-platform/README.md` for values and upgrades.
+
+## Terraform Deployment (IaC)
+
+Automates Kubernetes + Helm deployment. Two environments:
+
+| Environment | Path | Use case |
+|-------------|------|----------|
+| **local** | `terraform/environments/local` | Docker Desktop K8s, minikube, or kind |
+| **aws** | `terraform/environments/aws` | AWS EKS (VPC + cluster + app) |
+
+Quick start (local):
+
+```bash
+cd terraform/environments/local
+cp terraform.tfvars.example terraform.tfvars   # set openai_api_key
+
+docker build -t learning-platform-backend:latest ./backend
+docker build -t learning-platform-frontend:latest --build-arg REACT_APP_API_URL=/api ./frontend
+
+terraform init
+terraform apply
+```
+
+Add `127.0.0.1 learning-platform.local` to your hosts file, then open http://learning-platform.local
+
+Full instructions: `terraform/README.md`
 
 ## Assumptions
 

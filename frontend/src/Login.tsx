@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
-import api from './api';
+import api, { getApiErrorMessage } from './api';
 import { useAuth } from './context/AuthContext';
 
 const Login = () => {
@@ -21,8 +21,7 @@ const Login = () => {
       login(res.data.token, res.data.user);
       navigate(res.data.user.isAdmin ? '/admin' : '/dashboard');
     } catch (err: any) {
-      const msg = err.message || err.response?.data?.message || 'Login failed';
-      setError(msg);
+      setError(getApiErrorMessage(err, 'Login failed'));
     } finally {
       setLoading(false);
     }

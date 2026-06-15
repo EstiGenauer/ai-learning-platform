@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
-import api from './api';
+import api, { getApiErrorMessage } from './api';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -20,8 +20,7 @@ const Register = () => {
       await api.post('/Auth/register', { name, email, phone, password });
       navigate('/login');
     } catch (err: any) {
-      const msg = err.message || err.response?.data?.message || 'Registration failed';
-      setError(msg);
+      setError(getApiErrorMessage(err, 'Registration failed'));
     } finally {
       setLoading(false);
     }

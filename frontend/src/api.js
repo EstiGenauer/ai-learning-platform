@@ -5,7 +5,38 @@ const api = axios.create({
   timeout: 15000,
 });
 
+const isAuthEndpoint = (url) =>
+  url?.includes('/Auth/login') || url?.includes('/Auth/register');
+
+export const getApiErrorMessage = (error, fallback = 'Something went wrong') => {
+  const data = error.response?.data;
+
+  if (typeof data === 'string') {
+    try {
+      const parsed = JSON.parse(data);
+      if (typeof parsed?.message === 'string') return parsed.message;
+    } catch {
+      return data || fallback;
+    }
+  }
+
+  if (typeof data?.message === 'string') return data.message;
+
+  if (typeof data?.title === 'string') return data.title;
+
+  if (data?.errors) {
+    const messages = Object.values(data.errors).flat();
+    if (messages.length) return messages.join(' ');
+  }
+
+  if (error.response?.status === 401) return 'Invalid email or password.';
+
+  return error.message || fallback;
+};
+
 api.interceptors.request.use((config) => {
+  if (isAuthEndpoint(config.url)) return config;
+
   const token = localStorage.getItem('authToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -21,12 +52,21 @@ api.interceptors.response.use(
     } else if (!error.response) {
       error.message = 'Cannot reach server. Run: docker compose up -d --build';
     } else if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('authUser');
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      const onLoginPage = isAuthEndpoint(error.config?.url);
+
+      if (!onLoginPage) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('authUser');
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
       }
+
+      error.message = getApiErrorMessage(error, 'Invalid email or password.');
+    } else {
+      error.message = getApiErrorMessage(error, error.message);
     }
+
     return Promise.reject(error);
   }
 );

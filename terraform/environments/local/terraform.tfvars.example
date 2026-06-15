@@ -1,0 +1,22 @@
+# Copy to terraform.tfvars and fill in secrets (terraform.tfvars is gitignored)
+
+create_kind_cluster = false
+# create_kind_cluster = true   # uncomment to spin up a kind cluster
+
+ingress_host = "learning-platform.local"
+
+openai_api_key = "sk-your-openai-api-key"
+jwt_secret     = "MySuperSecretKeyForLearningPlatform123!"
+openai_model   = "gpt-4o"
+
+backend_image_repository  = "learning-platform-backend"
+backend_image_tag         = "latest"
+frontend_image_repository = "learning-platform-frontend"
+frontend_image_tag        = "latest"
+
+backend_replicas  = 1
+frontend_replicas = 1
+
+# Docker Hub example (after CI push):
+# backend_image_repository  = "your-dockerhub-user/learning-platform-backend"
+# frontend_image_repository = "your-dockerhub-user/learning-platform-frontend"

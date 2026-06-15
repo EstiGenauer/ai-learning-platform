@@ -29,3 +29,10 @@ pgdata/
 
 # --- Kubernetes secrets (never commit real keys) ---
 k8s/secret.yaml
+
+# --- Terraform ---
+terraform/**/.terraform/
+terraform/**/*.tfstate
+terraform/**/*.tfstate.*
+terraform/**/terraform.tfvars
+!terraform/**/terraform.tfvars.example
