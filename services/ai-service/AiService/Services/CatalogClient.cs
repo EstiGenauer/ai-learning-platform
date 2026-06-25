@@ -7,7 +7,12 @@ namespace AiService.Services
     /// service before a lesson is generated. Replaces the in-process EF lookup that the
     /// monolith used. Returns null when the selection is invalid or Catalog is unreachable.
     /// </summary>
-    public class CatalogClient
+    public interface ICatalogClient
+    {
+        Task<CategorySelectionDto?> ValidateSelectionAsync(int categoryId, int subCategoryId);
+    }
+
+    public class CatalogClient : ICatalogClient
     {
         private readonly HttpClient _http;
         private readonly ILogger<CatalogClient> _logger;

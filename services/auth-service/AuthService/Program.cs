@@ -27,7 +27,7 @@ builder.Services.AddDbContext<AuthDbContext>(options =>
 });
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ?? "SuperSecretKey1234567890123456");
+var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ?? "SuperSecretKeyForLearningPlatform1234567890");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -45,7 +45,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<PasswordService>();
 
 var aiServiceUrl = builder.Configuration["Services:AiService"] ?? "http://ai-service:8080";
-builder.Services.AddHttpClient<PromptStatsClient>(client =>
+builder.Services.AddHttpClient<IPromptStatsClient, PromptStatsClient>(client =>
 {
     client.BaseAddress = new Uri(aiServiceUrl);
     client.Timeout = TimeSpan.FromSeconds(5);

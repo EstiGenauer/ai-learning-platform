@@ -14,9 +14,9 @@ namespace CatalogService.Controllers
     public class AdminCategoriesController : ControllerBase
     {
         private readonly CatalogDbContext _context;
-        private readonly PromptUsageClient _promptUsage;
+        private readonly IPromptUsageClient _promptUsage;
 
-        public AdminCategoriesController(CatalogDbContext context, PromptUsageClient promptUsage)
+        public AdminCategoriesController(CatalogDbContext context, IPromptUsageClient promptUsage)
         {
             _context = context;
             _promptUsage = promptUsage;

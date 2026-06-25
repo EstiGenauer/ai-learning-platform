@@ -85,7 +85,7 @@ namespace AuthService.Controllers
             if (user.IsAdmin)
                 claims.Add(new Claim(ClaimTypes.Role, "Admin"));
 
-            var key = Encoding.ASCII.GetBytes(_config["Jwt:Key"] ?? "SuperSecretKey1234567890123456");
+            var key = Encoding.ASCII.GetBytes(_config["Jwt:Key"] ?? "SuperSecretKeyForLearningPlatform1234567890");
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),

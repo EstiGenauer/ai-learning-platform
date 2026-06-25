@@ -17,13 +17,13 @@ namespace AiService.Controllers
         private readonly ILessonGenerator _aiService;
         private readonly ILogger<PromptsController> _logger;
         private readonly PromptsDbContext _context;
-        private readonly CatalogClient _catalog;
+        private readonly ICatalogClient _catalog;
 
         public PromptsController(
             ILessonGenerator aiService,
             ILogger<PromptsController> logger,
             PromptsDbContext context,
-            CatalogClient catalog)
+            ICatalogClient catalog)
         {
             _aiService = aiService;
             _logger = logger;

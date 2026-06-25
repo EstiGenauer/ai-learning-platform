@@ -48,6 +48,9 @@ jobs:
       - name: Build
         run: dotnet build services/${{ matrix.service }}/${{ matrix.project }}/${{ matrix.project }}.csproj --no-restore -c Release
 
+      - name: Unit & integration tests
+        run: dotnet test services/${{ matrix.service }}/${{ matrix.project }}.Tests/${{ matrix.project }}.Tests.csproj -c Release --logger "console;verbosity=normal"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 

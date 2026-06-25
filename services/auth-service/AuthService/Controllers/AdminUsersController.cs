@@ -12,9 +12,9 @@ namespace AuthService.Controllers
     public class AdminUsersController : ControllerBase
     {
         private readonly AuthDbContext _context;
-        private readonly PromptStatsClient _promptStats;
+        private readonly IPromptStatsClient _promptStats;
 
-        public AdminUsersController(AuthDbContext context, PromptStatsClient promptStats)
+        public AdminUsersController(AuthDbContext context, IPromptStatsClient promptStats)
         {
             _context = context;
             _promptStats = promptStats;

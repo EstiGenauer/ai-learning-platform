@@ -136,6 +136,32 @@ docker compose down -v     # stop and wipe the databases
 
 ---
 
+## Testing
+
+Each service ships its own xUnit test project that runs the real ASP.NET Core
+pipeline in-memory (`WebApplicationFactory`) against an EF Core in-memory
+database. Cross-service HTTP clients are abstracted behind interfaces
+(`ICatalogClient`, `IPromptStatsClient`, `IPromptUsageClient`) and replaced with
+fakes, so the tests are fast, deterministic, and need no other service running.
+
+| Test project | Covers |
+|--------------|--------|
+| `AuthService.Tests` | register/login, JWT issuance, duplicate-email guard, admin-only authorization, BCrypt password hashing, prompt-count aggregation |
+| `CatalogService.Tests` | public catalog read, internal selection validation, admin CRUD authorization (401/403), cross-service delete guard |
+| `AiService.Tests` | auth-protected prompt creation, catalog validation, input validation, per-user history isolation, internal prompt-count/usage endpoints |
+
+```bash
+dotnet test services/auth-service/AuthService.Tests/AuthService.Tests.csproj
+dotnet test services/catalog-service/CatalogService.Tests/CatalogService.Tests.csproj
+dotnet test services/ai-service/AiService.Tests/AiService.Tests.csproj
+```
+
+These unit/integration suites run per service in the CI matrix, followed by a
+full-stack Docker Compose smoke test that exercises the real inter-service calls
+end-to-end with the fake AI generator.
+
+---
+
 ## What this demonstrates (DevOps)
 
 - **Microservices**: independent deployables, database-per-service, bounded contexts

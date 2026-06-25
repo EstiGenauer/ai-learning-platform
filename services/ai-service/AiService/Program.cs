@@ -27,7 +27,7 @@ builder.Services.AddDbContext<PromptsDbContext>(options =>
 });
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ?? "SuperSecretKey1234567890123456");
+var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ?? "SuperSecretKeyForLearningPlatform1234567890");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -53,7 +53,7 @@ else
     builder.Services.AddSingleton<ILessonGenerator>(new OpenAiLessonGenerator(apiKey ?? "dummy-key", openAiModel));
 
 var catalogServiceUrl = builder.Configuration["Services:CatalogService"] ?? "http://catalog-service:8080";
-builder.Services.AddHttpClient<CatalogClient>(client =>
+builder.Services.AddHttpClient<ICatalogClient, CatalogClient>(client =>
 {
     client.BaseAddress = new Uri(catalogServiceUrl);
     client.Timeout = TimeSpan.FromSeconds(5);

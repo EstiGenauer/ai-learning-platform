@@ -6,7 +6,13 @@ namespace CatalogService.Services
     /// key check that existed in the monolith. If the AI service is unreachable the delete
     /// is allowed (fail-open) and a warning is logged.
     /// </summary>
-    public class PromptUsageClient
+    public interface IPromptUsageClient
+    {
+        Task<bool> CategoryInUseAsync(int categoryId);
+        Task<bool> SubCategoryInUseAsync(int subCategoryId);
+    }
+
+    public class PromptUsageClient : IPromptUsageClient
     {
         private readonly HttpClient _http;
         private readonly ILogger<PromptUsageClient> _logger;

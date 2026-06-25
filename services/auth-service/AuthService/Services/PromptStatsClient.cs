@@ -5,7 +5,12 @@ namespace AuthService.Services
     /// Demonstrates synchronous inter-service communication with graceful degradation —
     /// if the AI service is unreachable, prompt counts default to 0 instead of failing.
     /// </summary>
-    public class PromptStatsClient
+    public interface IPromptStatsClient
+    {
+        Task<Dictionary<int, int>> GetPromptCountsAsync();
+    }
+
+    public class PromptStatsClient : IPromptStatsClient
     {
         private readonly HttpClient _http;
         private readonly ILogger<PromptStatsClient> _logger;
