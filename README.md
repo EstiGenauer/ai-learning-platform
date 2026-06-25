@@ -4,6 +4,11 @@ A full-stack learning platform that generates personalized AI lessons based on s
 
 > Academic evaluation project — see `פרויקט הערכה (1) (1).pdf` for the original requirements.
 
+> **Microservices version:** this branch (`feature/microservices`) re-architects the single
+> .NET API into three independent microservices (auth, catalog, AI) — each with its own
+> database — behind an NGINX API gateway. See [`README.microservices.md`](README.microservices.md)
+> and [`docs/architecture/09-microservices.md`](docs/architecture/09-microservices.md).
+
 ## Tech Stack
 
 | Layer | Technology |

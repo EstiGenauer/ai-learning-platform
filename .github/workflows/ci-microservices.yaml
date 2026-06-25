@@ -1,0 +1,149 @@
+name: ci-microservices
+
+on:
+  push:
+    branches: [feature/microservices, microservices, main, master]
+    paths:
+      - 'services/**'
+      - 'gateway/**'
+      - '.github/workflows/ci-microservices.yaml'
+  pull_request:
+    branches: [feature/microservices, microservices, main, master]
+    paths:
+      - 'services/**'
+      - 'gateway/**'
+      - '.github/workflows/ci-microservices.yaml'
+
+env:
+  REGISTRY_GHCR: ghcr.io
+
+jobs:
+  # =========================
+  # 1. BUILD & TEST EACH SERVICE (matrix)
+  # =========================
+  build:
+    name: Build ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: auth-service
+            project: AuthService
+          - service: catalog-service
+            project: CatalogService
+          - service: ai-service
+            project: AiService
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore
+        run: dotnet restore services/${{ matrix.service }}/${{ matrix.project }}/${{ matrix.project }}.csproj
+
+      - name: Build
+        run: dotnet build services/${{ matrix.service }}/${{ matrix.project }}/${{ matrix.project }}.csproj --no-restore -c Release
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (with cache)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./services/${{ matrix.service }}
+          push: false
+          load: true
+          tags: learning-platform-${{ matrix.service }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  # =========================
+  # 2. END-TO-END INTEGRATION (full stack via docker compose, fake AI)
+  # =========================
+  integration:
+    name: Integration (docker compose, fake AI)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bring up the full microservices stack
+        env:
+          USE_FAKE_AI: 'true'
+        run: docker compose up -d --build
+
+      - name: Wait for the gateway and seeding
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:5055/health > /dev/null; then echo "gateway up"; break; fi
+            sleep 3
+          done
+
+      - name: Smoke test cross-service flow
+        run: |
+          set -e
+          curl -sf http://localhost:5055/api/Categories | grep -q '"name"'
+          TOKEN=$(curl -sf -X POST http://localhost:5055/api/Auth/login \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"admin@admin.com","password":"Admin123!"}' | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+          test -n "$TOKEN"
+          curl -sf http://localhost:5055/api/Admin/users -H "Authorization: Bearer $TOKEN" | grep -q '"email"'
+          echo "Cross-service smoke test passed."
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+
+  # =========================
+  # 3. PUSH IMAGES (matrix) to DockerHub & GHCR
+  # =========================
+  push:
+    name: Push ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: [build, integration]
+    permissions:
+      contents: read
+      packages: write
+    if: github.event_name == 'push'
+    strategy:
+      matrix:
+        service: [auth-service, catalog-service, ai-service]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_GHCR }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push (reusing cache)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./services/${{ matrix.service }}
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/learning-platform-${{ matrix.service }}:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/learning-platform-${{ matrix.service }}:${{ github.sha }}
+            ${{ env.REGISTRY_GHCR }}/${{ github.repository }}/${{ matrix.service }}:latest
+            ${{ env.REGISTRY_GHCR }}/${{ github.repository }}/${{ matrix.service }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}

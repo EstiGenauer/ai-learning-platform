@@ -1,42 +1,45 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend
+  name: ai-service
   namespace: learning-platform
   labels:
-    app: backend
+    app: ai-service
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: backend
+      app: ai-service
   template:
     metadata:
       labels:
-        app: backend
+        app: ai-service
     spec:
       containers:
-        - name: backend
-          image: learning-platform-backend:latest
+        - name: ai-service
+          image: learning-platform-ai-service:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
-          envFrom:
-            - configMapRef:
-                name: learning-platform-config
           env:
             - name: ASPNETCORE_URLS
               value: "http://+:8080"
-            - name: OpenAi__ApiKey
-              valueFrom:
-                secretKeyRef:
-                  name: learning-platform-secrets
-                  key: OPENAI_API_KEY
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+            - name: ConnectionStrings__DefaultConnection
+              value: "Host=prompts-db;Port=5432;Database=prompts_db;Username=admin;Password=password;Timeout=5;Command Timeout=30"
+            - name: Services__CatalogService
+              value: "http://catalog-service:8080"
             - name: OpenAi__Model
               valueFrom:
                 configMapKeyRef:
                   name: learning-platform-config
                   key: OPENAI_MODEL
+            - name: OpenAi__ApiKey
+              valueFrom:
+                secretKeyRef:
+                  name: learning-platform-secrets
+                  key: OPENAI_API_KEY
             - name: Jwt__Key
               valueFrom:
                 secretKeyRef:
@@ -65,11 +68,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend
+  name: ai-service
   namespace: learning-platform
 spec:
   selector:
-    app: backend
+    app: ai-service
   ports:
     - port: 8080
       targetPort: 8080

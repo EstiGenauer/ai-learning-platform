@@ -1,39 +1,80 @@
 services:
-  db:
+  # ---------------------------------------------------------------------------
+  # Databases — one per service (database-per-service pattern)
+  # ---------------------------------------------------------------------------
+  auth-db:
     image: postgres:15
-    container_name: learning_platform_db
+    container_name: lp_auth_db
     restart: unless-stopped
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: learning_platform
+      POSTGRES_DB: auth_db
     ports:
-      - "5434:5432"
+      - "5435:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - auth_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d learning_platform"]
+      test: ["CMD-SHELL", "pg_isready -U admin -d auth_db"]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 10s
 
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: learning_platform_api
+  catalog-db:
+    image: postgres:15
+    container_name: lp_catalog_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: catalog_db
     ports:
-      - "5055:8080"
+      - "5436:5432"
+    volumes:
+      - catalog_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d catalog_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  prompts-db:
+    image: postgres:15
+    container_name: lp_prompts_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: prompts_db
+    ports:
+      - "5437:5432"
+    volumes:
+      - prompts_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d prompts_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # Microservices
+  # ---------------------------------------------------------------------------
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: lp_auth_service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=learning_platform;Username=admin;Password=password;Timeout=5;Command Timeout=30
-      - OpenAi__ApiKey=${OPENAI_API_KEY:-}
-      - OpenAi__Model=${OPENAI_MODEL:-gpt-4o-mini}
+      - ConnectionStrings__DefaultConnection=Host=auth-db;Port=5432;Database=auth_db;Username=admin;Password=password;Timeout=5;Command Timeout=30
       - Jwt__Key=${JWT_SECRET:-MySuperSecretKeyForLearningPlatform123!}
+      - Services__AiService=http://ai-service:8080
     depends_on:
-      db:
+      auth-db:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -43,24 +84,87 @@ services:
       retries: 5
       start_period: 30s
 
+  catalog-service:
+    build:
+      context: ./services/catalog-service
+      dockerfile: Dockerfile
+    container_name: lp_catalog_service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=catalog-db;Port=5432;Database=catalog_db;Username=admin;Password=password;Timeout=5;Command Timeout=30
+      - Jwt__Key=${JWT_SECRET:-MySuperSecretKeyForLearningPlatform123!}
+      - Services__AiService=http://ai-service:8080
+    depends_on:
+      catalog-db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  ai-service:
+    build:
+      context: ./services/ai-service
+      dockerfile: Dockerfile
+    container_name: lp_ai_service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=prompts-db;Port=5432;Database=prompts_db;Username=admin;Password=password;Timeout=5;Command Timeout=30
+      - Jwt__Key=${JWT_SECRET:-MySuperSecretKeyForLearningPlatform123!}
+      - Services__CatalogService=http://catalog-service:8080
+      - OpenAi__ApiKey=${OPENAI_API_KEY:-}
+      - OpenAi__Model=${OPENAI_MODEL:-gpt-4o-mini}
+      - USE_FAKE_AI=${USE_FAKE_AI:-false}
+    depends_on:
+      prompts-db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # API Gateway — single public entrypoint, routes by path to each service
+  # ---------------------------------------------------------------------------
+  gateway:
+    image: nginx:1.27-alpine
+    container_name: lp_gateway
+    ports:
+      - "5055:8080"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-service
+      - catalog-service
+      - ai-service
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
         REACT_APP_API_URL: http://localhost:5055/api
-    container_name: learning_platform_web
+    container_name: lp_web
     ports:
       - "3000:80"
     depends_on:
-      - backend
+      - gateway
     restart: unless-stopped
 
   # --- Observability stack (optional): docker compose --profile monitoring up -d ---
   prometheus:
     profiles: [monitoring]
     image: prom/prometheus:v3.2.1
-    container_name: learning_platform_prometheus
+    container_name: lp_prometheus
     ports:
       - "9090:9090"
     volumes:
@@ -70,15 +174,12 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
       - --web.enable-lifecycle
-    depends_on:
-      backend:
-        condition: service_healthy
     restart: unless-stopped
 
   loki:
     profiles: [monitoring]
     image: grafana/loki:3.4.2
-    container_name: learning_platform_loki
+    container_name: lp_loki
     ports:
       - "3100:3100"
     volumes:
@@ -90,7 +191,7 @@ services:
   promtail:
     profiles: [monitoring]
     image: grafana/promtail:3.4.2
-    container_name: learning_platform_promtail
+    container_name: lp_promtail
     volumes:
       - ./monitoring/promtail/promtail-config.yaml:/etc/promtail/config.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -102,7 +203,7 @@ services:
   grafana:
     profiles: [monitoring]
     image: grafana/grafana:11.5.2
-    container_name: learning_platform_grafana
+    container_name: lp_grafana
     ports:
       - "3001:3000"
     environment:
@@ -119,7 +220,9 @@ services:
     restart: unless-stopped
 
 volumes:
-  pgdata:
+  auth_pgdata:
+  catalog_pgdata:
+  prompts_pgdata:
   prometheus_data:
   loki_data:
   grafana_data:

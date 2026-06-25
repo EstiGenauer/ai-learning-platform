@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-nginx-config
+  namespace: learning-platform
+data:
+  nginx.conf: |
+    worker_processes auto;
+    events { worker_connections 1024; }
+    http {
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 60s;
+
+        server {
+            listen 8080;
+
+            location = /health {
+                default_type application/json;
+                return 200 '{"status":"ok","service":"gateway"}';
+            }
+
+            location = /api/Admin/users        { proxy_pass http://auth-service:8080; }
+            location = /api/Admin/prompts       { proxy_pass http://ai-service:8080; }
+            location ^~ /api/Admin/categories    { proxy_pass http://catalog-service:8080; }
+            location ^~ /api/Admin/subcategories { proxy_pass http://catalog-service:8080; }
+            location ^~ /api/Auth        { proxy_pass http://auth-service:8080; }
+            location ^~ /api/Categories  { proxy_pass http://catalog-service:8080; }
+            location ^~ /api/Prompts     { proxy_pass http://ai-service:8080; }
+
+            location / {
+                default_type application/json;
+                return 404 '{"message":"Not found at gateway."}';
+            }
+        }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: learning-platform
+  labels:
+    app: gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      containers:
+        - name: gateway
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: gateway-nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  namespace: learning-platform
+spec:
+  selector:
+    app: gateway
+  ports:
+    - port: 8080
+      targetPort: 8080

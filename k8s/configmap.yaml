@@ -7,4 +7,5 @@ data:
   OPENAI_MODEL: "gpt-4o"
   REACT_APP_API_URL: "/api"
   ASPNETCORE_ENVIRONMENT: "Production"
-  ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=learning_platform;Username=admin;Password=password;Timeout=5;Command Timeout=30"
+  # Per-service connection strings are defined inline in each service Deployment,
+  # since every microservice owns its own database (database-per-service).

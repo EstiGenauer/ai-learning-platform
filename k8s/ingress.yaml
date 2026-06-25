@@ -12,25 +12,19 @@ spec:
     - host: learning-platform.local
       http:
         paths:
+          # All API traffic goes to the gateway, which fans out to the services.
           - path: /api
             pathType: Prefix
             backend:
               service:
-                name: backend
+                name: gateway
                 port:
                   number: 8080
           - path: /health
             pathType: Prefix
             backend:
               service:
-                name: backend
-                port:
-                  number: 8080
-          - path: /swagger
-            pathType: Prefix
-            backend:
-              service:
-                name: backend
+                name: gateway
                 port:
                   number: 8080
           - path: /
